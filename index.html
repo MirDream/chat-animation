@@ -2,14 +2,14 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>聊天动画 · v2</title>
+<title>聊天动画 · v3</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     display: grid;
     place-items: center;
     min-height: 100vh;
-    background: #d9dde3;
+    background: radial-gradient(circle at 50% 20%, #e6eaf0, #cfd5dd);
     font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   }
   .phone {
@@ -18,7 +18,7 @@
     background: #ededed;
     border-radius: 22px;
     overflow: hidden;
-    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+    box-shadow: 0 20px 54px rgba(20, 28, 40, 0.26);
     display: flex;
     flex-direction: column;
   }
@@ -35,53 +35,92 @@
   }
   .chat {
     flex: 1;
-    padding: 14px 12px;
+    padding: 14px 12px 18px;
     display: flex;
     flex-direction: column;
     gap: 12px;
     overflow-y: auto;
     scroll-behavior: smooth;
   }
+
+  /* 时间分割线：灰底圆角小药丸 */
+  .divider {
+    align-self: center;
+    background: rgba(0, 0, 0, 0.06);
+    color: #8b8f96;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin: 2px 0 4px;
+    letter-spacing: 0.02em;
+  }
+
   .row { display: flex; gap: 8px; align-items: flex-start; }
   .row.me { justify-content: flex-end; }
   .avatar {
     width: 34px; height: 34px;
     border-radius: 6px;
     flex: 0 0 34px;
-    background: #c8ccd4;
+    background: linear-gradient(140deg, #cfd4dc, #b9bfc9);
   }
-  .row.me .avatar { background: #a8c7a0; }
+  .row.me .avatar { background: linear-gradient(140deg, #b7d8ad, #94bd88); }
+
   .bubble {
+    position: relative;
     max-width: 230px;
     padding: 9px 12px;
     border-radius: 8px;
     font-size: 14px;
-    line-height: 1.5;
-    color: #191919;
+    line-height: 1.55;
+    color: #1a1a1a;
     background: #ffffff;
     word-break: break-word;
-    animation: pop 0.22s ease;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08), 0 4px 10px rgba(16, 24, 40, 0.06);
+    animation: pop 0.22s ease both;
   }
-  .row.me .bubble { background: #95ec69; }
+
+  /* 气泡朝向头像的小尾巴 */
+  .bubble::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    width: 0; height: 0;
+    border: 6px solid transparent;
+  }
+  .row:not(.me) .bubble::before {
+    left: -11px;
+    border-right-color: #ffffff;
+    border-left-width: 0;
+  }
+  .row.me .bubble::before {
+    right: -11px;
+    border-left-color: #95ec69;
+    border-right-width: 0;
+  }
+  .row.me .bubble {
+    background: #95ec69;
+  }
+
   @keyframes pop {
-    from { opacity: 0; transform: translateY(6px); }
+    from { opacity: 0; transform: translateY(7px) scale(0.98); }
   }
+
+  /* 对方正在输入：文字变绿 + 省略号动效 */
   .typing {
-    display: flex;
-    gap: 4px;
-    padding: 12px 14px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    color: #3aa845;
+    font-size: 13px;
   }
-  .typing i {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #9aa0a6;
-    animation: blink 1.2s infinite;
+  .typing .dots span {
+    animation: ellipsis 1.4s infinite;
   }
-  .typing i:nth-child(2) { animation-delay: 0.2s; }
-  .typing i:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes blink {
-    0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
-    30% { opacity: 1; transform: translateY(-2px); }
+  .typing .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes ellipsis {
+    0%, 20% { opacity: 0; }
+    50%, 100% { opacity: 1; }
   }
 </style>
 </head>
@@ -112,6 +151,16 @@
     return n;
   }
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function clock() {
+    var d = new Date();
+    var h = String(d.getHours()).padStart(2, '0');
+    var m = String(d.getMinutes()).padStart(2, '0');
+    return h + ':' + m;
+  }
+
+  function appendDivider() {
+    chat.appendChild(el('div', 'divider', clock()));
+  }
 
   function appendRow(msg) {
     var row = el('div', 'row' + (msg.who === 'me' ? ' me' : ''));
@@ -131,7 +180,11 @@
   function appendTyping() {
     var row = el('div', 'row');
     row.appendChild(el('div', 'avatar'));
-    row.appendChild(el('div', 'bubble typing', '<i></i><i></i><i></i>'));
+    var b = el('div', 'bubble');
+    b.innerHTML = '<span class="typing">对方正在输入<em class="dots">' +
+      '<span>.</span><span>.</span><span>.</span></em></span>';
+    b.style.boxShadow = '0 1px 2px rgba(16,24,40,0.06)';
+    row.appendChild(b);
     chat.appendChild(row);
     chat.scrollTop = chat.scrollHeight;
     return row;
@@ -139,21 +192,21 @@
 
   async function play() {
     chat.innerHTML = '';
-    await sleep(300);
+    appendDivider();
+    await sleep(400);
     for (var i = 0; i < SCRIPT.length; i++) {
       var msg = SCRIPT[i];
       if (msg.who === 'them') {
-        // 对方发消息前先显示「正在输入」
         var typing = appendTyping();
-        await sleep(1100);
+        await sleep(1150);
         typing.remove();
       } else {
-        await sleep(600);
+        await sleep(620);
       }
       appendRow(msg);
-      await sleep(760);
+      await sleep(780);
     }
-    await sleep(2200);
+    await sleep(2400);
     play();          // 整体循环播放
   }
 
